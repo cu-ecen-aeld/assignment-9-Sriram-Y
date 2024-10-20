@@ -1,20 +1,53 @@
-#! /bin/sh
+#!/bin/sh
+
+load_or_unload_module() {
+    action=$1
+    mod_name=$2
+    devices="$3"
+
+    case "$action" in
+    load)
+        modprobe "$mod_name" || {
+            echo "Failed to load $mod_name"
+            exit 1
+        }
+        ;;
+    unload)
+        rmmod "$mod_name" || {
+            echo "Failed to unload $mod_name"
+            exit 1
+        }
+        ;;
+    esac
+
+    if [ -n "$devices" ]; then
+        major_num=$(awk "\$2==\"$mod_name\" {print \$1}" /proc/devices)
+        for device in $devices; do
+            case "$action" in
+            load) mknod "$device" c "$major_num" 0 || echo "Error: Unable to create $device" ;;
+            unload) rm -f "$device" || echo "Error: Unable to remove $device" ;;
+            esac
+        done
+    fi
+}
 
 case "$1" in
-    start)
-        echo "STARTING scull_load and module_load modules!"
-        /usr/bin/scull_load
-        /usr/bin/module_load faulty
-        modprobe hello
-        ;;
-    stop)
-        echo "STOPPING scull_load and module_load modules!"
-        /usr/bin/scull_unload
-        /usr/bin/module_unload faulty
-        rmmod hello
-        ;;
-    *)
-        echo "Usage: $0 [start|stop]"
+start)
+    echo "LOADING scull and faulty modules!!!"
+    load_or_unload_module load scull /dev/scull
+    load_or_unload_module load faulty /dev/faulty
+    load_or_unload_module load hello ""
+    ;;
+stop)
+    echo "UNLOADING scull and faulty modules!!!"
+    load_or_unload_module unload scull /dev/scull
+    load_or_unload_module unload faulty /dev/faulty
+    load_or_unload_module unload hello ""
+    ;;
+*)
+    echo "Usage: $0 {start|stop}"
     exit 1
+    ;;
 esac
+
 exit 0
