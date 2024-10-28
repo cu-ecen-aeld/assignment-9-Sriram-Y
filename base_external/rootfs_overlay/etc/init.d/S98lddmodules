@@ -33,16 +33,18 @@ load_or_unload_module() {
 
 case "$1" in
 start)
-    echo "LOADING scull and faulty modules!!!"
+    echo "LOADING scull, faulty, hello, and aesdchar modules"
     load_or_unload_module load scull /dev/scull
     load_or_unload_module load faulty /dev/faulty
     load_or_unload_module load hello ""
+    aesdchar_load
     ;;
 stop)
-    echo "UNLOADING scull and faulty modules!!!"
+    echo "UNLOADING scull, faulty, hello, and aesdchar modules"
     load_or_unload_module unload scull /dev/scull
     load_or_unload_module unload faulty /dev/faulty
     load_or_unload_module unload hello ""
+    aesdchar_unload
     ;;
 *)
     echo "Usage: $0 {start|stop}"
