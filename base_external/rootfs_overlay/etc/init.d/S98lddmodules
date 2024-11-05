@@ -1,0 +1,55 @@
+#!/bin/sh
+
+load_or_unload_module() {
+    action=$1
+    mod_name=$2
+    devices="$3"
+
+    case "$action" in
+    load)
+        modprobe "$mod_name" || {
+            echo "Failed to load $mod_name"
+            exit 1
+        }
+        ;;
+    unload)
+        rmmod "$mod_name" || {
+            echo "Failed to unload $mod_name"
+            exit 1
+        }
+        ;;
+    esac
+
+    if [ -n "$devices" ]; then
+        major_num=$(awk "\$2==\"$mod_name\" {print \$1}" /proc/devices)
+        for device in $devices; do
+            case "$action" in
+            load) mknod "$device" c "$major_num" 0 || echo "Error: Unable to create $device" ;;
+            unload) rm -f "$device" || echo "Error: Unable to remove $device" ;;
+            esac
+        done
+    fi
+}
+
+case "$1" in
+start)
+    echo "LOADING scull, faulty, hello, and aesdchar modules"
+    load_or_unload_module load scull /dev/scull
+    load_or_unload_module load faulty /dev/faulty
+    load_or_unload_module load hello ""
+    aesdchar_load
+    ;;
+stop)
+    echo "UNLOADING scull, faulty, hello, and aesdchar modules"
+    load_or_unload_module unload scull /dev/scull
+    load_or_unload_module unload faulty /dev/faulty
+    load_or_unload_module unload hello ""
+    aesdchar_unload
+    ;;
+*)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0
